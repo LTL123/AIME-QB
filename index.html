@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIME Problem Sorter</title>
+    <script src="config.js"></script>
+    <style>
+        :root {
+            /* WCAG 2.1 AA Compliant Colors */
+            --primary-color: #0056b3; /* Darker blue for contrast */
+            --primary-hover: #004494;
+            --secondary-color: #6c757d;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-color: #212529; /* Darker text */
+            --text-secondary: #495057;
+            --border-color: #e0e0e0; /* 1px light gray */
+            
+            /* Topic Colors - Adjusted for contrast if needed, or kept vibrant */
+            --topic-algebra: #d32f2f;
+            --topic-geometry: #2e7d32;
+            --topic-number: #fbc02d; /* Use black text on this */
+            --topic-combinatorics: #0288d1;
+            
+            --spacing-unit: 8px;
+            --danger-color: #dc3545;
+        }
+
+        /* Login Overlay */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(244, 246, 248, 1);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 320px;
+        }
+        
+        .login-box h2 {
+            margin-bottom: 24px;
+            color: var(--text-color);
+        }
+        
+        .login-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .login-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .error-msg {
+            color: var(--danger-color);
+            margin-top: 12px;
+            font-size: 14px;
+            display: none;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 16px; /* Base size */
+            line-height: 1.5;
+            user-select: none; /* Prevent text selection */
+            -webkit-user-select: none;
+        }
+
+        header {
+            background-color: white;
+            padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 3);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 24px; /* Hierarchy req */
+            font-weight: 700;
+            margin: 0 0 calc(var(--spacing-unit) * 2) 0;
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        /* Controls Layout - Optimized for frequency */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: calc(var(--spacing-unit) * 2);
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-unit);
+            background: #fff;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        button {
+            padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,86,179,0.2);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:disabled {
+            background-color: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .filter-btn {
+            background-color: transparent;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+        }
+
+        .filter-btn:hover {
+            background-color: #f1f3f5;
+            color: var(--text-color);
+        }
+
+        .filter-btn.active {
+            background-color: var(--text-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Grid & Card Design */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: calc(var(--spacing-unit) * 3);
+        }
+
+        .grid {
+            display: grid;
+            /* Enforce ~320px width cards */
+            grid-template-columns: repeat(auto-fill, 320px);
+            gap: calc(var(--spacing-unit) * 3);
+            justify-content: center;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 320px;
+            height: 240px; /* Fixed height req */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+
+        .card-image-container {
+            height: 120px; /* Reduced from 140px to give more space to content */
+            flex-shrink: 0; /* Prevent squashing */
+            background-color: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: zoom-in;
+            border-bottom: 1px solid var(--border-color);
+            padding: var(--spacing-unit);
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .card-content {
+            padding: var(--spacing-unit) calc(var(--spacing-unit) * 1.5);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden; /* Prevent spillover */
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px; /* Reduced margin */
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .card-badges {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .topic-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            background-color: var(--secondary-color);
+            cursor: pointer;
+            user-select: none;
+            transition: opacity 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* Added shadow for overlay visibility */
+            border: 1px solid rgba(255,255,255,0.2); /* Slight border for separation */
+        }
+        
+        .topic-badge:hover {
+            opacity: 0.9;
+        }
+
+        .topic-Algebra { background-color: var(--topic-algebra); }
+        .topic-Geometry { background-color: var(--topic-geometry); }
+        .topic-Number { background-color: var(--topic-number); color: #212529; }
+        .topic-Combinatorics { background-color: var(--topic-combinatorics); }
+
+        /* Bottom Answer Section (50px fixed) */
+        .card-footer {
+            height: 50px;
+            flex-shrink: 0; /* Prevent squashing */
+            background-color: #f8f9fa;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 calc(var(--spacing-unit) * 1.5);
+            margin-top: auto; 
+        }
+
+        .reveal-btn {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            color: var(--primary-color);
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 15px;
+        }
+
+        .reveal-btn:hover {
+            background-color: #eeffff;
+            border-color: var(--primary-color);
+        }
+
+        .answer-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--topic-geometry);
+            background: rgba(46, 125, 50, 0.1);
+            padding: 4px 12px;
+            border-radius: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(2px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading-indicator {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .year-select {
+            padding: var(--spacing-unit);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            color: var(--text-color);
+            background-color: white;
+            cursor: pointer;
+        }
+
+        /* Modal for Image Zoom */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.85);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 95%;
+            max-height: 95vh;
+            object-fit: contain;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: 300;
+            transition: 0.2s;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .modal-close:hover {
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>AIME Sorter Login</h2>
+            <input type="text" id="username" class="login-input" placeholder="Username">
+            <input type="password" id="password" class="login-input" placeholder="Password">
+            <button class="login-btn" onclick="attemptLogin()">Login</button>
+            <div id="login-error" class="error-msg">Invalid credentials</div>
+        </div>
+    </div>
+
+    <header>
+        <h1>AIME Problem Sorter</h1>
+        
+        <div class="controls">
+            <div class="filter-group">
+                <span style="font-weight: 500; color: var(--text-secondary); font-size: 14px;">Year:</span>
+                <select id="yearFilter" class="year-select" onchange="filterImages(currentFilter)">
+                    <option value="All">All Years</option>
+                    <!-- Options populated via JS -->
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <button class="filter-btn active" onclick="filterImages('All')">All Topics</button>
+                <button class="filter-btn" onclick="filterImages('Uncategorized')">Uncategorized</button>
+                <button class="filter-btn" onclick="filterImages('Algebra')">Algebra</button>
+                <button class="filter-btn" onclick="filterImages('Geometry')">Geometry</button>
+                <button class="filter-btn" onclick="filterImages('Number Theory')">Number Theory</button>
+                <button class="filter-btn" onclick="filterImages('Combinatorics')">Combinatorics</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="grid" class="grid">
+            <!-- Cards will be injected here -->
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <span class="modal-close">&times;</span>
+        <img class="modal-content" id="modalImg">
+    </div>
+
+    <script>
+        // Use Config Data
+        const CONFIG = window.APP_CONFIG || {};
+        let images = CONFIG.IMAGES || [];
+        let statusMap = {};
+        let answersMap = CONFIG.ANSWERS || {};
+        
+        let currentFilter = 'All';
+        
+        // LeanCloud Headers
+        const LC_HEADERS = {
+            "X-LC-Id": CONFIG.LC_APP_ID,
+            "X-LC-Key": CONFIG.LC_APP_KEY,
+            "Content-Type": "application/json"
+        };
+        const LC_CLASS_URL = `${CONFIG.LC_SERVER_URL}/1.1/classes/AIMEProblem`;
+        const LC_CONFIG_URL = `${CONFIG.LC_SERVER_URL}/1.1/classes/AppConfig`;
+
+        // Security Measures
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) { // F12
+                return false;
+            }
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) { // Ctrl+Shift+I
+                return false;
+            }
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) { // Ctrl+Shift+J
+                return false;
+            }
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) { // Ctrl+U
+                return false;
+            }
+        }
+
+        async function attemptLogin() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errDiv = document.getElementById('login-error');
+            
+            if (user !== 'AIME') {
+                errDiv.style.display = 'block';
+                errDiv.textContent = 'Invalid Username';
+                return;
+            }
+
+            try {
+                // Fetch password from LeanCloud
+                const response = await fetch(LC_CONFIG_URL, { headers: LC_HEADERS });
+                if (response.ok) {
+                    const data = await response.json();
+                    const results = data.results || [];
+                    const configItem = results.find(item => item.key === 'admin_password');
+                    
+                    const correctPass = configItem ? configItem.value : 'Key123456'; // Fallback
+                    
+                    if (pass === correctPass) {
+                        document.getElementById('login-overlay').style.display = 'none';
+                        loadImages();
+                    } else {
+                        errDiv.style.display = 'block';
+                        errDiv.textContent = 'Invalid Password';
+                    }
+                } else {
+                    errDiv.style.display = 'block';
+                    errDiv.textContent = 'Network Error';
+                }
+            } catch (e) {
+                console.error(e);
+                // Fallback for offline or error
+                if (pass === 'Key123456') {
+                     document.getElementById('login-overlay').style.display = 'none';
+                     loadImages();
+                } else {
+                    errDiv.style.display = 'block';
+                    errDiv.textContent = 'Login Error';
+                }
+            }
+        }
+
+        async function loadImages() {
+            try {
+                populateYearFilter();
+                
+                // Fetch status from LeanCloud
+                await fetchStatus();
+                
+                renderGrid();
+                
+                if (document.getElementById('processNewBtn')) {
+                    document.getElementById('processNewBtn').disabled = false;
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                // Fetch all records (limit 1000)
+                const url = `${LC_CLASS_URL}?limit=1000`;
+                const response = await fetch(url, { headers: LC_HEADERS });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const results = data.results || [];
+                    statusMap = {};
+                    results.forEach(item => {
+                        statusMap[item.filename] = item.topic;
+                    });
+                } else {
+                    console.error("Failed to fetch status from LeanCloud");
+                }
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }
+        
+        function renderGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            
+            const yearFilter = document.getElementById('yearFilter').value;
+
+            // Sort images
+            const sortedImages = [...images].sort((a, b) => {
+                // 1. Sort by Year (Descending: 2025 -> 2024)
+                const yearA = parseInt(a.match(/^(\d{4})/)?.[1] || 0);
+                const yearB = parseInt(b.match(/^(\d{4})/)?.[1] || 0);
+                if (yearA !== yearB) return yearB - yearA;
+
+                // 2. Sort by Exam Type (I vs II) - Optional preference? Let's assume standard string sort for now which puts I before II
+                // Actually, string sort "I-" vs "II-" works, but let's be safe.
+                
+                // 3. Sort by Question Number (Ascending: Q1 -> Q15)
+                const getQNum = (name) => {
+                    const match = name.match(/Q(\d+)/);
+                    return match ? parseInt(match[1]) : 999;
+                };
+                const qA = getQNum(a);
+                const qB = getQNum(b);
+                if (qA !== qB) return qA - qB;
+                
+                // Fallback to alphabetical
+                return a.localeCompare(b);
+            });
+
+            sortedImages.forEach(filename => {
+                let topicStr = statusMap[filename];
+                let isProcessed = !!topicStr;
+                
+                // Year Filter
+                if (yearFilter !== 'All') {
+                    // Extract "Year ExamType" (e.g. "2025 I" or "2025 II")
+                    // Filename format: "2025 I-Q1.png"
+                    const match = filename.match(/^(\d{4}\s+[IV]+)/);
+                    if (!match || match[1] !== yearFilter) return;
+                }
+
+                // Topic Filter
+                if (currentFilter !== 'All') {
+                    if (currentFilter === 'Uncategorized' && isProcessed) return;
+                    if (currentFilter !== 'Uncategorized') {
+                        // Normalize topic for comparison
+                        let normalizedTopic = topicStr || "";
+                        if (normalizedTopic.includes("Number")) normalizedTopic += ", Number Theory";
+                        
+                        // Check if ANY of the topics matches the filter
+                        if (!normalizedTopic.includes(currentFilter)) return;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.id = `card-${filename}`;
+                
+                // Answer Logic
+                const key = filename.replace(/\.(png|jpg|jpeg)$/i, '');
+                const answer = answersMap[key];
+                const answerHtml = answer ? 
+                    `<span class="answer-container">
+                        <button class="reveal-btn" onclick="revealAnswer('${filename}')">Show Answer</button>
+                        <span id="answer-${filename}" class="answer-text" style="display:none;">${answer}</span>
+                    </span>` : 
+                    '<span style="font-size:12px; color:#ccc;">No Answer</span>';
+
+                let badgesHtml = '';
+                if (isProcessed) {
+                    // Split topics and render multiple badges
+                    const topics = topicStr.split(',').map(t => t.trim());
+                    badgesHtml = `<div class="card-badges">` + topics.map(t => 
+                        `<span class="topic-badge ${getTopicClass(t)}" 
+                               title="Double-click to delete" 
+                               ondblclick="deleteCategory('${filename}')">${t}</span>`
+                    ).join('') + `</div>`;
+                }
+
+                card.innerHTML = `
+                    ${badgesHtml}
+                    <div class="card-image-container" onclick="openModal('images/${filename}')">
+                        <img src="images/${filename}" alt="${filename}" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h3 class="card-title">${filename}</h3>
+                        </div>
+                        
+                        <div id="status-${filename}" style="display: flex; gap: 5px; flex-wrap: wrap;">
+                            ${isProcessed ? '' : `
+                                <select style="padding: 2px; border-radius: 4px; border: 1px solid #ddd; font-size: 11px;" onchange="saveManualCategory('${filename}', this.value); this.value='';">
+                                    <option value="" disabled selected>Manual...</option>
+                                    <option value="Algebra">Algebra</option>
+                                    <option value="Geometry">Geometry</option>
+                                    <option value="Number Theory">Number Theory</option>
+                                    <option value="Combinatorics">Combinatorics</option>
+                                </select>
+                            `}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        ${answerHtml}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function deleteCategory(filename) {
+             if (window.event) window.event.stopPropagation();
+             if (!confirm(`Clear categorization for ${filename}?`)) return;
+             
+             // First find the objectId
+             const queryUrl = `${LC_CLASS_URL}?where=${JSON.stringify({filename: filename})}`;
+             
+             try {
+                 const checkRes = await fetch(queryUrl, { headers: LC_HEADERS });
+                 const checkData = await checkRes.json();
+                 
+                 if (checkData.results && checkData.results.length > 0) {
+                     const objectId = checkData.results[0].objectId;
+                     const deleteUrl = `${LC_CLASS_URL}/${objectId}`;
+                     
+                     const res = await fetch(deleteUrl, { 
+                         method: 'DELETE',
+                         headers: LC_HEADERS
+                     });
+                     
+                     if (res.ok) {
+                        delete statusMap[filename];
+                        renderGrid();
+                    } else {
+                        alert("Failed to delete category");
+                    }
+                 }
+             } catch(e) {
+                 console.error(e);
+                 alert("Error deleting category");
+             }
+        }
+        
+        // ... (filterImages kept same) ...
+        function filterImages(filter) {
+            currentFilter = filter;
+            
+            // Update UI
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => {
+                // simple check: if button text matches filter, or if filter is 'All' and button text is 'All Topics'
+                const text = btn.textContent;
+                if (text === filter || (filter === 'All' && text === 'All Topics')) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            renderGrid();
+        }
+
+        function getTopicClass(topic) {
+            if (!topic) return '';
+            if (topic.includes("Number")) topic = "Number Theory";
+            if (topic.includes("Algebra")) return "topic-Algebra";
+            if (topic.includes("Geometry")) return "topic-Geometry";
+            if (topic.includes("Number")) return "topic-Number";
+            if (topic.includes("Combinatorics")) return "topic-Combinatorics";
+            return "";
+        }
+
+        async function saveManualCategory(filename, topic) {
+             if (!topic) return;
+             await saveToLeanCloud(filename, topic);
+        }
+
+        function populateYearFilter() {
+            const select = document.getElementById('yearFilter');
+            // Keep "All Years" option
+            select.innerHTML = '<option value="All">All Years</option>';
+
+            // Extract "Year ExamType" (e.g. "2025 I", "2025 II")
+            const years = [...new Set(images.map(f => {
+                const m = f.match(/^(\d{4}\s+[IV]+)/);
+                return m ? m[1] : null;
+            }).filter(Boolean))];
+            
+            // Sort Descending
+            years.sort().reverse();
+            
+            years.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                select.appendChild(opt);
+            });
+        }
+
+        function revealAnswer(filename) {
+            const btn = document.querySelector(`#card-${filename.replace(/\./g, '\\.')} .reveal-btn`);
+            const ans = document.getElementById(`answer-${filename}`);
+            if (ans) {
+                ans.style.display = 'inline-flex';
+                if (btn) btn.style.display = 'none';
+            }
+        }
+        
+        async function saveToLeanCloud(filename, topic) {
+             // Check existing first to get objectId (inefficient but safe for simple use)
+             const queryUrl = `${LC_CLASS_URL}?where=${JSON.stringify({filename: filename})}`;
+             
+             try {
+                 const checkRes = await fetch(queryUrl, { headers: LC_HEADERS });
+                 const checkData = await checkRes.json();
+                 
+                 let method = 'POST';
+                 let url = LC_CLASS_URL;
+                 
+                 if (checkData.results && checkData.results.length > 0) {
+                     method = 'PUT';
+                     url = `${LC_CLASS_URL}/${checkData.results[0].objectId}`;
+                 }
+                 
+                 const res = await fetch(url, {
+                     method: method,
+                     headers: LC_HEADERS,
+                     body: JSON.stringify({ filename, topic, text: "" })
+                 });
+                 
+                 if (res.ok) {
+                    statusMap[filename] = topic;
+                    renderGrid();
+                 }
+             } catch (e) {
+                 console.error(e);
+             }
+        }
+
+        async function processNewOnly() {
+            await processNewImages();
+        }
+
+        // Modal functions
+        function openModal(src) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImg');
+            modal.style.display = "block";
+            modalImg.src = src;
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = "none";
+        }
+        
+        // Auto load on start
+        // window.onload = loadImages;
+    </script>
+</body>
+</html>
